@@ -1,110 +1,97 @@
 import streamlit as st
-import string
 
-# 페이지 설정
-st.set_page_config(page_title="카이사르 암호 실습", page_icon="🏛️")
+# 사이트 기본 설정
+st.set_page_config(page_title="컴퓨터 통역기", page_icon="💻")
 
-st.title("🏛️ 카이사르 암호(Caesar Cipher) 실습")
-st.markdown("""
-<div style='background-color: #e8f4f8; padding: 15px; border-radius: 10px; margin-bottom: 20px;'>
-    <strong>💡 핵심 원리:</strong> 알파벳을 일정한 거리만큼 밀어서 글자를 바꿉니다.<br>
-    고대 로마의 황제 '카이사르'가 군사 비밀을 보낼 때 사용했던 역사적인 암호 방식입니다.
-</div>
-""", unsafe_allow_html=True)
+st.title("💻 컴퓨터 통역기 (Text Converter)")
+st.write("컴퓨터는 0과 1밖에 모릅니다. 우리가 쓰는 글자가 컴퓨터 내부에서 어떻게 변하는지 확인해보세요!")
 
-# --- 1. 암호화 설정 (키 선택) ---
-st.subheader("1. 암호 열쇠(Key) 설정")
-st.write("알파벳을 옆으로 몇 칸 밀어볼까요? (이 숫자가 바로 암호의 '키'입니다.)")
+# 탭을 나누어 기능 분리 (변환하기 vs 되돌리기)
+tab1, tab2 = st.tabs(["🔤 텍스트 ➡ 코드(분해)", "🔢 코드 ➡ 텍스트(조립)"])
 
-# 슬라이더로 키 선택 (1~25)
-key = st.slider("밀어낼 칸 수 (Shift)", 1, 25, 3)
+# --- 기능 1: 텍스트를 코드로 변환 (인코딩) ---
+with tab1:
+    st.subheader("사람의 말을 컴퓨터 언어로 변환")
+    user_input = st.text_input("변환할 문장을 입력하세요 (예: Hello, 내 이름은...)", "Hello")
 
-# 시각적 예시 보여주기
-st.info(f"🔑 **설정된 규칙:** 모든 알파벳을 오른쪽으로 **{key}칸** 이동합니다.")
+    if user_input:
+        # 결과를 저장할 리스트들
+        ascii_list = []
+        binary_list = []
 
-# 변환 예시 시각화
-example_text = "ABCDEFG"
-shifted_example = ""
-for char in example_text:
-    shifted_char = chr((ord(char) - 65 + key) % 26 + 65)
-    shifted_example += shifted_char
+        # 한 글자씩 반복하며 변환
+        for char in user_input:
+            code_num = ord(char)  # 문자를 아스키/유니코드 숫자로 변환
+            binary_num = format(code_num, 'b')  # 숫자를 이진수로 변환
+            
+            ascii_list.append(str(code_num))
+            binary_list.append(binary_num)
 
-st.code(f"""
-원래 글자: {example_text}... (A부터 시작)
-변환 글자: {shifted_example}... ({chr(65+key)}부터 시작)
-""", language="text")
-
-st.markdown("---")
-
-# --- 2. 실습 하기 ---
-st.subheader("2. 직접 암호 만들어보기")
-
-# 텍스트 입력
-plain_text = st.text_input("암호로 만들고 싶은 영어 문장을 입력하세요:", "HELLO WORLD")
-
-# 암호화/복호화 함수
-def caesar_cipher(text, shift, mode='encrypt'):
-    result = ""
-    # 복호화면 반대로 밀어야 함
-    if mode == 'decrypt':
-        shift = -shift
+        # 결과 보여주기
+        st.success("변환 완료!")
         
-    for char in text:
-        if char.isalpha():
-            # 대문자/소문자 기준점 확인 (ASCII 코드)
-            start = ord('A') if char.isupper() else ord('a')
-            # (현재글자 - 기준 + 이동칸) % 26 + 기준
-            new_char = chr((ord(char) - start + shift) % 26 + start)
-            result += new_char
-        else:
-            # 알파벳이 아니면(공백, 숫자 등) 그대로 둠
-            result += char
-    return result
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.info("🔢 10진수 (ASCII/Unicode)")
+            # 리스트를 공백으로 합쳐서 보여줌
+            st.code(" ".join(ascii_list))
+            st.caption("컴퓨터 주소값(십진수)입니다.")
 
-# 결과 계산
-encrypted_text = caesar_cipher(plain_text, key, mode='encrypt')
+        with col2:
+            st.warning("👾 2진수 (Binary)")
+            st.code(" ".join(binary_list))
+            st.caption("실제 컴퓨터 메모리에 저장되는 형태(0과 1)입니다.")
 
-# 화면 분할로 전/후 비교
-col1, col2 = st.columns(2)
+        # 상세 분석 (표 형태)
+        with st.expander("🔍 한 글자씩 상세히 보기"):
+            data = {
+                "글자": list(user_input),
+                "10진수": ascii_list,
+                "2진수": binary_list
+            }
+            st.table(data)
 
-with col1:
-    st.markdown("#### 📝 원래 문장 (Plain Text)")
-    st.success(plain_text)
-
-with col2:
-    st.markdown("#### 🔒 암호화된 문장 (Cipher Text)")
-    st.error(encrypted_text)
-
-st.markdown("---")
-
-# --- 3. 해독 해보기 (복호화) ---
-st.subheader("3. 암호 해독하기 (복호화)")
-st.write("받은 암호문을 다시 원래대로 돌리려면 어떻게 해야 할까요?")
-
-if st.button("열쇠를 반대로 돌려 해독하기 🔓"):
-    decrypted_text = caesar_cipher(encrypted_text, key, mode='decrypt')
-    st.balloons()
-    st.markdown(f"""
-    <div style='padding: 15px; border: 2px solid #4CAF50; border-radius: 10px; text-align: center;'>
-        <h3>해독 성공! 🎉</h3>
-        <p>암호문 <strong>"{encrypted_text}"</strong> → 키를 <strong>-{key}</strong>만큼 돌림 → 원문 <strong>"{decrypted_text}"</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# --- 4. 생기부용 이론 설명 (이건 꼭 넣으세요!) ---
-st.markdown("---")
-with st.expander("📚 [생기부/세특용] 수학적 원리 보기 (Modulo 연산)"):
-    st.markdown(f"""
-    ### 1. 순환의 원리 (Modulo)
-    이 프로그램은 단순히 더하기만 하는 것이 아니라, **나머지 연산(Modulo, %)**을 사용합니다.
+# --- 기능 2: 코드를 텍스트로 변환 (디코딩) ---
+with tab2:
+    st.subheader("컴퓨터 언어를 사람의 말로 해석")
+    st.write("위에서 얻은 **10진수 숫자**들을 **공백(스페이스바)**으로 띄워서 입력해주세요.")
     
-    알파벳은 총 26글자이므로, Z(25번째)를 넘어가면 다시 A(0번째)로 돌아와야 합니다.
-    이것은 마치 **시계가 12시 다음 1시가 되는 원리**와 같습니다.
+    code_input = st.text_area("숫자 코드 입력 (예: 72 101 108 108 111)", "72 101 108 108 111")
+
+    if st.button("해석하기 (Decode)"):
+        try:
+            # 입력된 문자열을 공백 기준으로 자르기
+            num_strings = code_input.split()
+            
+            decoded_chars = []
+            for num_str in num_strings:
+                num = int(num_str) # 문자를 숫자로 변환
+                char = chr(num)    # 숫자를 다시 글자로 변환
+                decoded_chars.append(char)
+            
+            result_text = "".join(decoded_chars)
+            
+            st.balloons() # 성공 축하 효과
+            st.success(f"해석 결과: {result_text}")
+            
+        except ValueError:
+            st.error("오류! 숫자만 입력해주세요. (글자나 특수문자가 섞여 있는지 확인하세요)")
+        except Exception as e:
+            st.error(f"알 수 없는 오류가 발생했습니다: {e}")
+
+# --- 사이드바: 원리 설명 (세특용) ---
+with st.sidebar:
+    st.header("💡 원리 알아보기")
+    st.markdown("""
+    **1. 인코딩 (Encoding)**
+    사람의 문자를 컴퓨터가 이해하는 숫자로 바꾸는 과정입니다.
+    파이썬의 `ord()` 함수를 사용했습니다.
     
-    ### 2. 수학 공식
-    수학적으로 표현하면 다음과 같습니다. ($x$는 알파벳 번호, $n$은 키 값)
+    **2. 디코딩 (Decoding)**
+    저장된 숫자를 다시 화면에 문자로 보여주는 과정입니다.
+    파이썬의 `chr()` 함수를 사용했습니다.
     
-    $$ f(x) = (x + n) \pmod{{26}} $$
-    
-    이 간단한 공식이 **컴퓨터 보안(Cryptography)**의 시초가 되었습니다.
+    **3. 아스키(ASCII) & 유니코드**
+    영어는 아스키 코드로, 한글은 유니코드로 변환되어 저장됩니다.
     """)
