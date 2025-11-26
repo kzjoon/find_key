@@ -1,108 +1,85 @@
 import streamlit as st
+import pandas as pd
 
-# 사이트 기본 설정
-st.set_page_config(page_title="컴퓨터 통역기", page_icon="💻")
+# 1. 페이지 설정 (레이아웃을 'wide'로 해서 화면을 넓게 씀)
+st.set_page_config(
+    page_title="BitConverter",
+    page_icon="⚡",
+    layout="wide"
+)
 
-st.title("💻 컴퓨터 통역기 (Text Converter)")
-st.write("컴퓨터는 0과 1밖에 모릅니다. 우리가 쓰는 글자가 컴퓨터 내부에서 어떻게 변하는지 확인해보세요!")
+# 2. 스타일 꾸미기 (커스텀 CSS) - 제목 폰트나 여백 조정
+st.markdown("""
+    <style>
+    .big-font {
+        font-size:30px !important;
+        font-weight: bold;
+    }
+    .stButton>button {
+        width: 100%; /* 버튼을 꽉 차게 */
+        border-radius: 10px;
+        height: 3em;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# 탭을 나누어 기능 분리
-tab1, tab2 = st.tabs(["🔤 텍스트 ➡ 코드(분해)", "🔢 코드 ➡ 텍스트(조립)"])
+# 3. 헤더 디자인
+col1, col2 = st.columns([1, 5])
+with col1:
+    st.image("https://cdn-icons-png.flaticon.com/512/2083/2083213.png", width=80)
+with col2:
+    st.title("BitConverter")
+    st.caption("High Performance Text-to-Binary Processor")
 
-# --- 기능 1: 텍스트를 코드로 변환 (인코딩) ---
+st.divider() # 구분선
+
+# 4. 메인 기능 탭
+tab1, tab2 = st.tabs(["🔠 ENCODER (변환)", "🔢 DECODER (해석)"])
+
+# --- TAB 1: 인코딩 (텍스트 -> 코드) ---
 with tab1:
-    st.subheader("사람의 말을 컴퓨터 언어로 변환")
-    
-    # 1. 입력창 만들기 (기본값을 비워둡니다)
-    user_input = st.text_input("변환할 문장을 입력하세요", placeholder="예: Hello, 컴퓨터")
+    # 레이아웃: 입력창(좌) -> 결과창(우)
+    col_input, col_result = st.columns([1, 1])
 
-    # 2. 버튼 만들기: 이 버튼을 눌러야 아래 코드가 실행됩니다.
-    if st.button("변환하기 (Convert)"):
+    with col_input:
+        st.subheader("Input Text")
+        user_input = st.text_area("텍스트를 입력하세요", height=200, placeholder="Hello World")
         
-        if user_input:  # 입력된 내용이 있을 때만 실행
-            # 결과를 저장할 리스트들
-            ascii_list = []
-            binary_list = []
-
-            # 한 글자씩 반복하며 변환
-            for char in user_input:
-                code_num = ord(char)  # 문자를 아스키/유니코드 숫자로 변환
-                binary_num = format(code_num, 'b')  # 숫자를 이진수로 변환
+        # 버튼 (primary 타입으로 색상 강조)
+        if st.button("🚀 Convert to Code", type="primary", key="btn_encode"):
+            if user_input:
+                # 변환 로직
+                ascii_list = [str(ord(c)) for c in user_input]
+                binary_list = [format(ord(c), 'b') for c in user_input]
                 
-                ascii_list.append(str(code_num))
-                binary_list.append(binary_num)
+                # 세션 상태에 결과 저장 (새로고침 방지용)
+                st.session_state['result_ascii'] = " ".join(ascii_list)
+                st.session_state['result_binary'] = " ".join(binary_list)
+                st.session_state['input_len'] = len(user_input)
+                st.session_state['bit_len'] = sum(len(b) for b in binary_list)
+                st.session_state['has_result'] = True
+            else:
+                st.warning("텍스트를 입력해주세요.")
 
-            # 결과 보여주기
-            st.success("변환 성공!")
+    with col_result:
+        st.subheader("Processing Result")
+        
+        if st.session_state.get('has_result'):
+            # 1. 통계 메트릭 보여주기 (있어 보이는 요소)
+            m1, m2 = st.columns(2)
+            m1.metric("Characters", f"{st.session_state['input_len']} 자")
+            m2.metric("Total Bits", f"{st.session_state['bit_len']} bits")
             
-            col1, col2 = st.columns(2)
+            # 2. 결과 보여주기 (탭으로 구분)
+            res_tab1, res_tab2 = st.tabs(["DECIMAL (10진수)", "BINARY (2진수)"])
             
-            with col1:
-                st.info("🔢 10진수 (ASCII/Unicode)")
-                st.code(" ".join(ascii_list))
-                st.caption("컴퓨터 주소값(십진수)입니다.")
-
-            with col2:
-                st.warning("👾 2진수 (Binary)")
-                st.code(" ".join(binary_list))
-                st.caption("실제 컴퓨터 메모리에 저장되는 형태(0과 1)입니다.")
-
-            # 상세 분석 (표 형태)
-            with st.expander("🔍 한 글자씩 상세히 보기"):
-                data = {
-                    "글자": list(user_input),
-                    "10진수": ascii_list,
-                    "2진수": binary_list
-                }
-                st.table(data)
+            with res_tab1:
+                st.code(st.session_state['result_ascii'], language="text")
+            with res_tab2:
+                st.code(st.session_state['result_binary'], language="bash")
+                
+            st.success("Transformation Complete.")
         else:
-            # 아무것도 입력하지 않고 버튼을 눌렀을 때 경고 메시지
-            st.error("입력창에 내용을 적어주세요!")
+            st.info("좌측에 텍스트를 입력하고 버튼을 눌러주세요.")
 
-# --- 기능 2: 코드를 텍스트로 변환 (디코딩) ---
-with tab2:
-    st.subheader("컴퓨터 언어를 사람의 말로 해석")
-    st.write("위에서 얻은 **10진수 숫자**들을 **공백(스페이스바)**으로 띄워서 입력해주세요.")
-    
-    code_input = st.text_area("숫자 코드 입력 (예: 72 101 108 108 111)")
-
-    # 여기도 이미 버튼이 구현되어 있습니다.
-    if st.button("해석하기 (Decode)"):
-        if code_input:
-            try:
-                # 입력된 문자열을 공백 기준으로 자르기
-                num_strings = code_input.split()
-                
-                decoded_chars = []
-                for num_str in num_strings:
-                    num = int(num_str) # 문자를 숫자로 변환
-                    char = chr(num)    # 숫자를 다시 글자로 변환
-                    decoded_chars.append(char)
-                
-                result_text = "".join(decoded_chars)
-                
-                st.balloons() # 성공 축하 효과
-                st.success(f"해석 결과: {result_text}")
-                
-            except ValueError:
-                st.error("오류! 숫자만 입력해주세요. (글자나 특수문자가 섞여 있는지 확인하세요)")
-            except Exception as e:
-                st.error(f"알 수 없는 오류가 발생했습니다: {e}")
-        else:
-            st.error("숫자 코드를 입력해주세요!")
-
-# --- 사이드바: 원리 설명 ---
-with st.sidebar:
-    st.header("💡 원리 알아보기")
-    st.markdown("""
-    **1. 인코딩 (Encoding)**
-    사람의 문자를 컴퓨터가 이해하는 숫자로 바꾸는 과정입니다.
-    파이썬의 `ord()` 함수를 사용했습니다.
-    
-    **2. 디코딩 (Decoding)**
-    저장된 숫자를 다시 화면에 문자로 보여주는 과정입니다.
-    파이썬의 `chr()` 함수를 사용했습니다.
-    
-    **3. 아스키(ASCII) & 유니코드**
-    영어는 아스키 코드로, 한글은 유니코드로 변환되어 저장됩니다.
-    """)
+# --- TAB 2: 디코딩 (코드 -> 텍
